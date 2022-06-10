@@ -4,6 +4,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+/**
+ * Class handling all data going to the server
+ */
 public class ServerOutput extends Thread{
     private DataOutputStream output = null;
     private final String msg;

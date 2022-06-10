@@ -6,6 +6,9 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+/**
+ * Class for handling all server traffic from the server
+ */
 public class ServerInput  extends Thread{
 
     private final MainActivity activity;

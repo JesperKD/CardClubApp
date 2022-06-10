@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/linearLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <Button
+        android:id="@+id/LoginButton"
+        android:layout_width="150dp"
+        android:layout_height="100dp"
+        android:layout_marginBottom="57dp"
+        android:text="Login"
+        android:onClick="login_OnClick"
+        app:layout_constraintBottom_toTopOf="@+id/RegisterButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/LoginPasswordText" />
+
+    <Button
+        android:id="@+id/RegisterButton"
+        android:layout_width="150dp"
+        android:layout_height="50dp"
+        android:layout_marginBottom="108dp"
+        android:text="Register"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/LoginButton" />
+
+    <EditText
+        android:id="@+id/LoginPasswordText"
+        android:layout_width="250dp"
+        android:layout_height="50dp"
+        android:layout_marginBottom="25dp"
+        android:text="Password"
+        android:textAlignment="center"
+        app:layout_constraintBottom_toTopOf="@+id/LoginButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/LoginUsernameText" />
+
+    <EditText
+        android:id="@+id/LoginUsernameText"
+        android:layout_width="250dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="268dp"
+        android:layout_marginBottom="23dp"
+        android:text="Username"
+        android:textAlignment="center"
+        app:layout_constraintBottom_toTopOf="@+id/LoginPasswordText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

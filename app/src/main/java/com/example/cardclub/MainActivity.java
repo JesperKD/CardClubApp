@@ -38,10 +38,13 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Method start connecting to server
+     *
      * @param view view to listen from
      */
-    public void connectBtnClicked(View view)
-    {
+    public void connectBtnClicked(View view) {
+        /*setContentView(R.layout.game);
+        setupDragAndDrop(findViewById(R.id.DragView));
+        setupDragAndDrop(findViewById(R.id.DropView));*/
         new Thread(this::connect).start();
     }
 
@@ -65,12 +68,29 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Method to send data string to server on button click
-     *
-     * @param view view to listen from
      */
-    public void sendMessageClick(View view) {
-        String message = String.valueOf(((EditText) findViewById(R.id.editText)).getText());
-        new Thread(new ServerOutput(socket, message)).start();
+    public void sendMessage(String msg) {
+        new Thread(new ServerOutput(socket, msg)).start();
+    }
+
+    public void login_OnClick(){
+        String username = String.valueOf(((EditText) findViewById(R.id.LoginUsernameText)).getText());
+        String password = String.valueOf(((EditText) findViewById(R.id.LoginPasswordText)).getText());
+        String msg = "login;" + username + ";" + password;
+        sendMessage(msg);
+    }
+
+    public void register_OnClick(){
+        String username = String.valueOf(((EditText) findViewById(R.id.RegUsernameText)).getText());;
+        String playerName = String.valueOf(((EditText) findViewById(R.id.RegPasswordText)).getText());
+        String password = String.valueOf(((EditText) findViewById(R.id.RegPlayerNameText)).getText());
+
+        String msg = "register;" + username + ";" + playerName + ";" + password;
+        sendMessage(msg);
+    }
+
+    public void redirectToRegister(){
+        setContentView(R.layout.register);
     }
 
     /**
@@ -78,12 +98,11 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param msg String to put into the TextView
      */
-    public void setMessageView(String msg)
-    {
-        (((TextView)findViewById(R.id.textView))).setText(msg);
+    public void setMessageView(String msg) {
+        (((TextView) findViewById(R.id.textView))).setText(msg);
     }
 
-    private void setupDragAndDrop(ImageView imageView){
+    private void setupDragAndDrop(ImageView imageView) {
         final boolean[] hasTheData = {false};
         imageView.setLongClickable(true);
 
@@ -103,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
             // ClipData and sets its MIME type to "text/plain".
             ClipData dragData = new ClipData(
                     (CharSequence) v.getTag(),
-                    new String[] { ClipDescription.MIMETYPE_TEXT_PLAIN },
+                    new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
                     item);
 
             // Instantiate the drag shadow builder.
@@ -126,10 +145,10 @@ public class MainActivity extends AppCompatActivity {
         //View DragView = findViewById(R.id.DropView);
 
         // Set the drag event listener for the View.
-        imageView.setOnDragListener( (v, e) -> {
+        imageView.setOnDragListener((v, e) -> {
 
             // Handles each of the expected events.
-            switch(e.getAction()) {
+            switch (e.getAction()) {
 
                 case DragEvent.ACTION_DRAG_STARTED:
 
@@ -138,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // As an example of what your application might do, applies a blue color tint
                         // to the View to indicate that it can accept data.
-                        ((ImageView)v).setColorFilter(Color.BLUE);
+                        ((ImageView) v).setColorFilter(Color.BLUE);
 
                         // Invalidate the view to force a redraw in the new tint.
                         v.invalidate();
@@ -155,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                 case DragEvent.ACTION_DRAG_ENTERED:
 
                     // Applies a green tint to the View.
-                    ((ImageView)v).setColorFilter(Color.GREEN);
+                    ((ImageView) v).setColorFilter(Color.GREEN);
 
                     // Invalidates the view to force a redraw in the new tint.
                     v.invalidate();
@@ -173,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
                     hasTheData[0] = false;
 
                     // Resets the color tint to blue.
-                    ((ImageView)v).setColorFilter(Color.BLUE);
+                    ((ImageView) v).setColorFilter(Color.BLUE);
 
                     // Invalidates the view to force a redraw in the new tint.
                     v.invalidate();
@@ -195,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Dragged data is " + dragData, Toast.LENGTH_LONG).show();
 
                     // Turns off any color tints.
-                    ((ImageView)v).clearColorFilter();
+                    ((ImageView) v).clearColorFilter();
 
                     // Invalidates the view to force a redraw.
                     v.invalidate();
@@ -205,10 +224,10 @@ public class MainActivity extends AppCompatActivity {
 
                 case DragEvent.ACTION_DRAG_ENDED:
 
-                    if(hasTheData[0]){
+                    if (hasTheData[0]) {
 
                         // Turns off any color tinting.
-                        ((ImageView)v).clearColorFilter();
+                        ((ImageView) v).clearColorFilter();
 
                         // Invalidates the view to force a redraw.
                         v.invalidate();
@@ -227,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // An unknown action type was received.
                 default:
-                    Log.e("DragDrop Example","Unknown action type received by View.OnDragListener.");
+                    Log.e("DragDrop Example", "Unknown action type received by View.OnDragListener.");
                     break;
             }
 
