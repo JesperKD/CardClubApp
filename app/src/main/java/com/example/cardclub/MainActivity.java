@@ -15,20 +15,25 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.cardclub.pogos.Card;
 import com.example.cardclub.serverHandling.ServerInput;
 import com.example.cardclub.serverHandling.ServerOutput;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The main view of the application
  */
 public class MainActivity extends AppCompatActivity {
 
+    String lastServerResponse;
     private Socket socket = null;
-    private String address = "10.108.137.77";
+    private String address = "192.168.8.106";
     private int port = 5004;
+    public List<Card> playerHand = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,11 +46,21 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param view view to listen from
      */
-    public void connectBtnClicked(View view) {
+    public void connectBtnClicked(View view) throws InterruptedException {
         /*setContentView(R.layout.game);
         setupDragAndDrop(findViewById(R.id.DragView));
         setupDragAndDrop(findViewById(R.id.DropView));*/
-        new Thread(this::connect).start();
+        new Thread(this::baseConnect).start();
+        checkConnection();
+    }
+
+    public void baseConnect() {
+        try {
+            socket = new Socket(address, port);
+            new Thread(new ServerInput(this, socket)).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -66,31 +81,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Method to send data string to server on button click
-     */
-    public void sendMessage(String msg) {
-        new Thread(new ServerOutput(socket, msg)).start();
-    }
-
-    public void login_OnClick(){
-        String username = String.valueOf(((EditText) findViewById(R.id.LoginUsernameText)).getText());
-        String password = String.valueOf(((EditText) findViewById(R.id.LoginPasswordText)).getText());
-        String msg = "login;" + username + ";" + password;
-        sendMessage(msg);
-    }
-
-    public void register_OnClick(){
-        String username = String.valueOf(((EditText) findViewById(R.id.RegUsernameText)).getText());;
-        String playerName = String.valueOf(((EditText) findViewById(R.id.RegPasswordText)).getText());
-        String password = String.valueOf(((EditText) findViewById(R.id.RegPlayerNameText)).getText());
-
-        String msg = "register;" + username + ";" + playerName + ";" + password;
-        sendMessage(msg);
-    }
-
-    public void redirectToRegister(){
-        setContentView(R.layout.register);
+    public void checkConnection() throws InterruptedException {
+        Thread.sleep(1000);
+        if (lastServerResponse.equals("true")) {
+            redirectToLogin();
+        }
     }
 
     /**
@@ -99,11 +94,87 @@ public class MainActivity extends AppCompatActivity {
      * @param msg String to put into the TextView
      */
     public void setMessageView(String msg) {
-        (((TextView) findViewById(R.id.textView))).setText(msg);
+        System.out.println("Server responded: " + msg);
+        lastServerResponse = msg;
+
+        //(((TextView) findViewById(R.id.textView))).setText(msg);
     }
 
-    private void setupDragAndDrop(ImageView imageView) {
-        final boolean[] hasTheData = {false};
+    /**
+     * Method to send data string to server on button click
+     */
+    public void sendMessage(String msg) {
+        new Thread(new ServerOutput(socket, msg)).start();
+    }
+
+    /**
+     * Method for handling user login
+     */
+    public void login_OnClick(View view) throws InterruptedException {
+        String username = String.valueOf(((EditText) findViewById(R.id.LoginUsernameText)).getText());
+        String password = String.valueOf(((EditText) findViewById(R.id.LoginPasswordText)).getText());
+        String msg = "login;" + username + ";" + password;
+        sendMessage(msg);
+        checkRegisterOrLogin();
+    }
+
+    /**
+     * Method for handling user registration
+     */
+    public void register_OnClick(View view) throws InterruptedException {
+        String username = String.valueOf(((EditText) findViewById(R.id.RegUsernameText)).getText());
+        String playerName = String.valueOf(((EditText) findViewById(R.id.RegPasswordText)).getText());
+        String password = String.valueOf(((EditText) findViewById(R.id.RegPlayerNameText)).getText());
+
+        String msg = "register;" + username + ";" + playerName + ";" + password;
+        sendMessage(msg);
+        checkRegisterOrLogin();
+    }
+
+    /**
+     * Method for redirecting a user to the Register page
+     */
+    public void redirectToRegister(View view) {
+        setContentView(R.layout.register);
+    }
+
+    public void checkRegisterOrLogin() throws InterruptedException {
+        Thread.sleep(1000);
+        if (lastServerResponse.equals("true")) {
+            redirectToMenu();
+        }
+    }
+
+    public void checkJoinOrCreateRoom() {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        if (lastServerResponse.equals("true")) {
+            redirectToGame();
+        }
+    }
+
+    public void redirectToLogin() {
+        setContentView(R.layout.login);
+    }
+
+    public void redirectToMenu() {
+        setContentView(R.layout.menu);
+    }
+
+    public void redirectToGame() {
+        setContentView(R.layout.game);
+    }
+
+    public void fillPlayerHand() {
+        CardHandler cardHandler = new CardHandler();
+        playerHand = cardHandler.generateHand(lastServerResponse);
+    }
+
+    private void setupDragEvent(ImageView imageView) {
         imageView.setLongClickable(true);
 
         // Sets a long click listener for the ImageView using an anonymous listener object that
@@ -142,7 +213,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        //View DragView = findViewById(R.id.DropView);
+    }
+
+    private void setupDropZone() {
+        ImageView imageView = findViewById(R.id.dropZone);
 
         // Set the drag event listener for the View.
         imageView.setOnDragListener((v, e) -> {
@@ -189,8 +263,6 @@ public class MainActivity extends AppCompatActivity {
 
                 case DragEvent.ACTION_DRAG_EXITED:
 
-                    hasTheData[0] = false;
-
                     // Resets the color tint to blue.
                     ((ImageView) v).setColorFilter(Color.BLUE);
 
@@ -201,8 +273,6 @@ public class MainActivity extends AppCompatActivity {
                     return true;
 
                 case DragEvent.ACTION_DROP:
-
-                    hasTheData[0] = true;
 
                     // Gets the item containing the dragged data.
                     ClipData.Item item = e.getClipData().getItemAt(0);
@@ -224,14 +294,11 @@ public class MainActivity extends AppCompatActivity {
 
                 case DragEvent.ACTION_DRAG_ENDED:
 
-                    if (hasTheData[0]) {
+                    // Turns off any color tinting.
+                    ((ImageView) v).clearColorFilter();
 
-                        // Turns off any color tinting.
-                        ((ImageView) v).clearColorFilter();
-
-                        // Invalidates the view to force a redraw.
-                        v.invalidate();
-                    }
+                    // Invalidates the view to force a redraw.
+                    v.invalidate();
 
 
                     // Does a getResult(), and displays what happened.
@@ -254,6 +321,4 @@ public class MainActivity extends AppCompatActivity {
 
         });
     }
-
-
 }

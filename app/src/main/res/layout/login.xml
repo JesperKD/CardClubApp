@@ -5,6 +5,7 @@
     android:id="@+id/linearLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#009A83"
     android:orientation="vertical">
 
     <Button
@@ -12,8 +13,8 @@
         android:layout_width="150dp"
         android:layout_height="100dp"
         android:layout_marginBottom="57dp"
-        android:text="Login"
         android:onClick="login_OnClick"
+        android:text="Login"
         app:layout_constraintBottom_toTopOf="@+id/RegisterButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -24,6 +25,7 @@
         android:layout_width="150dp"
         android:layout_height="50dp"
         android:layout_marginBottom="108dp"
+        android:onClick="redirectToRegister"
         android:text="Register"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -35,6 +37,7 @@
         android:layout_width="250dp"
         android:layout_height="50dp"
         android:layout_marginBottom="25dp"
+        android:background="@color/white"
         android:text="Password"
         android:textAlignment="center"
         app:layout_constraintBottom_toTopOf="@+id/LoginButton"
@@ -48,6 +51,7 @@
         android:layout_height="50dp"
         android:layout_marginTop="268dp"
         android:layout_marginBottom="23dp"
+        android:background="@color/white"
         android:text="Username"
         android:textAlignment="center"
         app:layout_constraintBottom_toTopOf="@+id/LoginPasswordText"
