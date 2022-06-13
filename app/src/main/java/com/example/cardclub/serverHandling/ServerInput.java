@@ -31,7 +31,7 @@ public class ServerInput  extends Thread{
         {
             try {
                 line = input.readUTF();
-                activity.setMessageView(line);
+                activity.handleServerMessage(line);
             } catch (IOException e) {
                 e.printStackTrace();
             }

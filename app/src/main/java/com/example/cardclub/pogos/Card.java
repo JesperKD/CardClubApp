@@ -12,8 +12,8 @@ public class Card {
 
     /**
      * Constructor for Card class
-     *  @param value value of card
-     * @param suit  suit of card
+     *  @param value int value of card
+     * @param suit String suit of card
      */
     public Card(int value, String suit) {
         this.value = value;

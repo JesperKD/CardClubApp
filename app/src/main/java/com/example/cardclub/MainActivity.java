@@ -2,27 +2,33 @@ package com.example.cardclub;
 
 import android.content.ClipData;
 import android.content.ClipDescription;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.DragEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.cardclub.pogos.Card;
+import com.example.cardclub.pogos.Player;
 import com.example.cardclub.serverHandling.ServerInput;
 import com.example.cardclub.serverHandling.ServerOutput;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * The main view of the application
@@ -33,12 +39,18 @@ public class MainActivity extends AppCompatActivity {
     private Socket socket = null;
     private String address = "192.168.8.106";
     private int port = 5004;
-    public List<Card> playerHand = new ArrayList<>();
+    private Player player;
+    private final CardHandler cardhandler = new CardHandler();
+    private LinearLayout cardHolder;
+    private boolean yourTurn = false;
+    private boolean playerWon = false;
+    private boolean playerLost = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
     }
 
     /**
@@ -47,13 +59,13 @@ public class MainActivity extends AppCompatActivity {
      * @param view view to listen from
      */
     public void connectBtnClicked(View view) throws InterruptedException {
-        /*setContentView(R.layout.game);
-        setupDragAndDrop(findViewById(R.id.DragView));
-        setupDragAndDrop(findViewById(R.id.DropView));*/
         new Thread(this::baseConnect).start();
         checkConnection();
     }
 
+    /**
+     * Simplified connect method using static data
+     */
     public void baseConnect() {
         try {
             socket = new Socket(address, port);
@@ -93,9 +105,25 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param msg String to put into the TextView
      */
-    public void setMessageView(String msg) {
+    public void handleServerMessage(String msg) {
         System.out.println("Server responded: " + msg);
+
+        yourTurn = msg.equals("YourTurn");
+
+        if (msg.equals("You Won")) {
+            playerWon = true;
+            displayEndingDialog();
+        } else if (msg.equals("You Lost")) {
+            playerLost = false;
+            displayEndingDialog();
+        }
+
         lastServerResponse = msg;
+
+        if (cardhandler.generateHand(player, msg)) {
+            //Get the main thread so i can call main functions
+            new Handler(Looper.getMainLooper()).postDelayed(this::prepareVisualCards, 1000);
+        }
 
         //(((TextView) findViewById(R.id.textView))).setText(msg);
     }
@@ -111,11 +139,14 @@ public class MainActivity extends AppCompatActivity {
      * Method for handling user login
      */
     public void login_OnClick(View view) throws InterruptedException {
-        String username = String.valueOf(((EditText) findViewById(R.id.LoginUsernameText)).getText());
-        String password = String.valueOf(((EditText) findViewById(R.id.LoginPasswordText)).getText());
+        String username = String.valueOf(((EditText) findViewById(R.id.loginPlayernameText)).getText());
+        String password = String.valueOf(((EditText) findViewById(R.id.loginPasswordText)).getText());
         String msg = "login;" + username + ";" + password;
+
+        player = new Player(username, "");
+
         sendMessage(msg);
-        checkRegisterOrLogin();
+        checkLogin();
     }
 
     /**
@@ -128,23 +159,103 @@ public class MainActivity extends AppCompatActivity {
 
         String msg = "register;" + username + ";" + playerName + ";" + password;
         sendMessage(msg);
-        checkRegisterOrLogin();
+        checkRegisterOrUpdate();
     }
 
     /**
-     * Method for redirecting a user to the Register page
+     * method for handling updating of user information
      */
-    public void redirectToRegister(View view) {
-        setContentView(R.layout.register);
+    public void updateUser_OnClick(View view) {
+        String playerName = String.valueOf(((EditText) findViewById(R.id.loginPasswordText)).getText());
+        String password = String.valueOf(((EditText) findViewById(R.id.loginPlayernameText)).getText());
+        String msg;
+        if (!password.equals("New Password")) {
+            msg = "updateuser;" + "psw;" + playerName + ";" + player.getUserName() + ";" + password;
+        } else {
+            msg = "updateuser;" + "Playername;" + playerName + ";" + player.getUserName() + ";" + "";
+        }
+
+        sendMessage(msg);
+
+        try {
+            checkRegisterOrUpdate();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
-    public void checkRegisterOrLogin() throws InterruptedException {
+    /**
+     * Method for handling a player playing a card
+     *
+     * @param imageTag
+     */
+    public void playCard_OnDrop(String imageTag) {
+        if (yourTurn) {
+            String[] arrOfString = imageTag.split("_");
+            List<Card> tempList = player.getCards();
+            String cardToPlay = "";
+
+            for (Card card : tempList
+            ) {
+                if (card.getSuit().equals(arrOfString[0])) {
+                    if (card.getValue() == Integer.parseInt(arrOfString[1])) {
+                        cardToPlay = card.getValue() + ";" + card.getSuit();
+                        tempList.remove(card);
+                        break;
+                    }
+                }
+            }
+
+            if (!cardToPlay.equals("")) {
+                sendMessage("playcard;" + cardToPlay);
+            }
+            player.setCards(tempList);
+            System.out.println("Player played: " + cardToPlay);
+        }
+    }
+
+    /**
+     * Method for handling room creation
+     *
+     * @param view
+     */
+    public void createRoom_OnClick(View view) {
+        sendMessage("createroom");
+
+        try {
+            checkJoinOrCreateRoom();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Method for checking if a register or update call went through
+     *
+     * @throws InterruptedException
+     */
+    public void checkRegisterOrUpdate() throws InterruptedException {
         Thread.sleep(1000);
         if (lastServerResponse.equals("true")) {
             redirectToMenu();
         }
     }
 
+    /**
+     * Method for checking if a login all went through
+     *
+     * @throws InterruptedException
+     */
+    public void checkLogin() throws InterruptedException {
+        Thread.sleep(1000);
+        if (!lastServerResponse.equals("false")) {
+            redirectToMenu();
+        }
+    }
+
+    /**
+     * Method for checking if a join or createroom call went through
+     */
     public void checkJoinOrCreateRoom() {
         try {
             Thread.sleep(1000);
@@ -157,23 +268,74 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Method for redirecting a user to the Register page
+     */
+    public void redirectToRegister(View view) {
+        setContentView(R.layout.register);
+    }
+
+    /**
+     * Method for redirecting a user to the login page
+     */
     public void redirectToLogin() {
         setContentView(R.layout.login);
     }
 
+    /**
+     * Method for redirecting a user to the menu page
+     */
     public void redirectToMenu() {
         setContentView(R.layout.menu);
     }
 
+    /**
+     * Method for redirecting a user to the game page
+     */
     public void redirectToGame() {
         setContentView(R.layout.game);
     }
 
-    public void fillPlayerHand() {
-        CardHandler cardHandler = new CardHandler();
-        playerHand = cardHandler.generateHand(lastServerResponse);
+    /**
+     * Method for redirecting a user to the updateProfile page
+     *
+     * @param view
+     */
+    public void redirectToUpdate(View view) {
+        setContentView(R.layout.updateprofile);
     }
 
+    /**
+     * Method for generating and showing a players cards
+     */
+    public void prepareVisualCards() {
+        cardHolder = findViewById(R.id.CardHolder);
+
+        for (Card card : player.getCards()) {
+            ImageView image = new ImageView(this);
+            image.setTag(card.getSuit() + "_" + card.getValue());
+            Context context = image.getContext();
+            int id = this.getResources().getIdentifier(card.getSuit().toLowerCase(Locale.ROOT) + "_" + card.getValue(), "drawable", context.getPackageName());
+            System.out.println(card.getSuit() + "_" + card.getValue() + ",drawable," + context.getPackageName());
+            image.setBackgroundResource(id);
+            LinearLayout.LayoutParams param = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1.0f
+            );
+            image.setLayoutParams(param);
+            setupDragEvent(image);
+            cardHolder.addView(image);
+        }
+
+        setupDropZone();
+    }
+
+    /**
+     * Method for adding Dragging events to an imageview
+     *
+     * @param imageView
+     */
     private void setupDragEvent(ImageView imageView) {
         imageView.setLongClickable(true);
 
@@ -215,6 +377,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Method for adding Drop events to an imageview
+     */
     private void setupDropZone() {
         ImageView imageView = findViewById(R.id.dropZone);
 
@@ -283,6 +448,21 @@ public class MainActivity extends AppCompatActivity {
                     // Displays a message containing the dragged data.
                     Toast.makeText(this, "Dragged data is " + dragData, Toast.LENGTH_LONG).show();
 
+                    //Removes played card from players hands
+                    final int childCount = cardHolder.getChildCount();
+                    for (int i = 0; i < childCount; i++) {
+                        View child = cardHolder.getChildAt(i);
+                        if (child != null) {
+                            if (child.getTag().equals(dragData)) {
+                                Thread thread = new Thread(() -> playCard_OnDrop((String) dragData));
+                                thread.start();
+                                Context context = child.getContext();
+                                imageView.setBackgroundResource(this.getResources().getIdentifier(String.valueOf(child.getTag()), "drawable", context.getPackageName()));
+                                ((ViewGroup) child.getParent()).removeView(child);
+                            }
+                        }
+                    }
+
                     // Turns off any color tints.
                     ((ImageView) v).clearColorFilter();
 
@@ -320,5 +500,35 @@ public class MainActivity extends AppCompatActivity {
             return false;
 
         });
+    }
+
+    /***
+     * determines which final dialog box to display
+     */
+    private void displayEndingDialog(){
+        if(playerWon){
+            winningDialog();
+        }
+
+        if(playerLost){
+            loosingDialog();
+        }
+    }
+
+    /**
+     * Dialog box to tell the user they won
+     */
+    private void winningDialog(){
+        new AlertDialog.Builder(this)
+                .setTitle("YOU WON!").show();
+    }
+
+    /**
+     * Dialog box to tell the user they lost
+     */
+    private void loosingDialog(){
+        new AlertDialog.Builder(this)
+                .setTitle("You lost")
+                .setMessage("Better luck next time.").show();
     }
 }
