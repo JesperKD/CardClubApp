@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
      * @param view view to listen from
      */
     public void connectBtnClicked(View view) throws InterruptedException {
-        new Thread(this::baseConnect).start();
+        new Thread(this::connect).start();
         checkConnection();
     }
 
